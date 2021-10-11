@@ -1,0 +1,27 @@
+[package]
+name = "sixtyfps-str8ts"
+version = "0.1.0"
+authors = ["Vuenc <v.buergin@gmx.de>"]
+edition = "2018"
+resolver = "2"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[[bin]]
+path = "main.rs"
+name = "sixtyfps-str8ts"
+
+[lib]
+path = "main.rs"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+rand = "0.8"
+sixtyfps = "0.1.3" # ../../api/sixtyfps-rs" }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = { version = "0.2" }
+getrandom = { version = "0.2.2", features = ["js"] }
+
+[build-dependencies]
+sixtyfps-build = "0.1.3" # { path = "../../api/sixtyfps-rs/sixtyfps-build" }
