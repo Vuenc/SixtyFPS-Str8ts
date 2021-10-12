@@ -21,7 +21,7 @@ struct Cell := {
     is-fixed: bool,
     is-editing: bool,
     is-valid-in-row: bool,
-    is-valid-in-straight: bool,
+    is-valid-in-straight: bool
 }
 
 struct Theme := {
@@ -169,7 +169,7 @@ Button := Rectangle {
     }
 }
 
-import "./plaster-font/Plaster-Regular.ttf";
+// import "./plaster-font/Plaster-Regular.ttf";
 
 export MainWindow := Window {
     title: "Str8ts Puzzle - SixtyFPS Demo";
@@ -179,11 +179,15 @@ export MainWindow := Window {
     callback reset();
     callback enable-auto-mode(bool);
     callback set-mode(string);
+    callback solve-puzzle();
+    callback save-game();
+    callback generate-puzzle();
     property <bool> auto-play;
     property <int> moves;
     property <int> tiles-left;
-    property<string> mode: "none"; // "none", "edit-black-white", "edit-fixed-numbers", "play-enter-numbers", "play-enter-small-numbers"
+    property <string> mode: "none"; // "none", "edit-black-white", "edit-fixed-numbers", "play-enter-numbers", "play-enter-small-numbers"
     property <[Cell]> cells: [];
+    property <bool> was-just-solved;
 
     property <[Theme]> themes: [
         {
@@ -208,54 +212,7 @@ export MainWindow := Window {
             /// Ratio of the piece size
             piece-spacing: 0%,
             cells-outer-border: 1px,
-        },
-        {
-            name: "BERLIN",
-            window-background-color: #ffffff88,
-            game-background-color: #ffffffcc,
-            game-use-background-image: true,
-            game-border: 0px,
-            game-radius: 2px,
-            game-text-color: #858585,
-            game-highlight-color: #1d6aaa,
-            piece-border: 0px,
-            piece-background-1: #43689e,
-            piece-background-2: #2f2a14,
-            piece-border-color-1: #0000,
-            piece-border-color-2: #0000,
-            piece-text-color-1: #000000,
-            piece-text-color-2: #ffffff,
-            piece-text-weight-fixed-value: 700,
-            piece-text-weight-nonfixed-value: 550,
-            piece-radius: 0px,
-            /// Ratio of the piece size
-            piece-spacing: 8%,
-            cells-outer-border: 1px,
-        },
-        {
-            name: "PLASTER",
-            window-background-color: #424244,
-            game-background-color: #f8f4e9,
-            game-use-background-image: false,
-            game-border: 5px,
-            game-radius: 20px,
-            game-text-color: #858585,
-            game-highlight-color: #e06b53,
-            piece-border: 4px,
-            piece-background-1: #e06b53,
-            piece-background-2: #f8f4e9,
-            piece-border-color-1: #424244,
-            piece-border-color-2: #e06b53,
-            piece-text-color-1: #f8f4e9,
-            piece-text-color-2: #424244,
-            piece-text-weight-fixed-value: 700,
-            piece-text-weight-nonfixed-value: 550,
-            piece-text-font-family: "Plaster",
-            piece-radius: 5px,
-            /// Ratio of the piece size
-            piece-spacing: 10%,
-            cells-outer-border: 1px,
-        },
+        }
     ];
 
     property<int> current-theme-index: 1;
@@ -397,13 +354,42 @@ export MainWindow := Window {
 
                     if (!current-theme.game-use-background-image) : Rectangle {
                         // background: i >= 8 ? current-theme.piece-background-2 : current-theme.piece-background-1;
-                        background: p.is-editing ? (p.is_white ? #f0f2a4 : #535339)
-                            : !p.is-white ? #000000 : !p.is-valid-in-straight ? #ff5c5c : #ffffff;
+                        background: #ff00ff;
                         border-color: #000000;
                         border-width: current-theme.piece-border;
                         border-radius: 0;
                         animate border-width, border-radius { duration: 500ms; easing: ease-out; }
-                        animate background { duration: 40ms; }
+
+                        states [ 
+                            was-just-solved when root.was-just-solved && p.is-white : {
+                                background: #99fb99;
+                            }
+                            is-editing when p.is-editing : {
+                                background: p.is_white ? #f0f2a4 : #535339;
+                            }
+                            is-invalid-in-straight when !p.is-valid-in-straight : {
+                                background: #ff5c5c;
+                            }
+                            is-white when p.is-white : {
+                                background: #ffffff;
+                            }
+                            is-black when !p.is-white : {
+                                background: #000000;
+                            }
+                        ]
+
+                        transitions [ 
+                            in was-just-solved: {
+                                animate background { duration: 400ms; easing: ease-in; }
+                            }
+                            out was-just-solved: {
+                                animate background { duration: 200ms; easing: ease-out; }
+                            }
+                            in is-invalid-in-straight : { animate background { duration: 40ms; } }
+                            in is-editing : { animate background { duration: 40ms; } }
+                            in is-white : { animate background { duration: 100ms; easing: ease-in-out;  } }
+                            in is-black : { animate background { duration: 100ms; easing: ease-in-out; } }
+                        ]
                     }
 
                     if (!current-theme.game-use-background-image || tiles-left > 0) : Text {
@@ -419,19 +405,19 @@ export MainWindow := Window {
                         animate color { duration: 200ms; }
                     }
 
-                        for small-val[j] in p.small-values : Rectangle {
-                            if value <= 0 && small-val: Text {
-                                text: j+1;
-                                font-size: pieces-size / 6;
-                                font-family: current-theme.piece-text-font-family;
-                                x: (parent.width / 3) * mod(j, 3);
-                                y: (parent.height / 3) * floor(j / 3);
-                                width: parent.width / 3;
-                                height: parent.height / 3;
-                                vertical-alignment: center;
-                                horizontal-alignment: center;
-                            }
+                    for small-val[j] in p.small-values : Rectangle {
+                        if value <= 0 && small-val: Text {
+                            text: j+1;
+                            font-size: pieces-size / 6;
+                            font-family: current-theme.piece-text-font-family;
+                            x: (parent.width / 3) * mod(j, 3);
+                            y: (parent.height / 3) * floor(j / 3);
+                            width: parent.width / 3;
+                            height: parent.height / 3;
+                            vertical-alignment: center;
+                            horizontal-alignment: center;
                         }
+                    }
 
                     touch := TouchArea {
                         clicked => { root.piece-clicked(i); }
@@ -475,13 +461,6 @@ export MainWindow := Window {
             }
         }
 
-        // Rectangle {
-        //     width: parent.width;
-        //     height: 1px;
-        //     background: current-theme.game-text-color;
-        //     y: parent.height - pieces-size / 2;
-        // }
-
         HorizontalLayout {
             height: pieces-size;
             y: parent.height - pieces-size;
@@ -503,12 +482,30 @@ export MainWindow := Window {
                 // font-size: parent.height;
             }
             Button { 
-                button-text: "⬜/⬛";
                 button-color: current-theme.game-text-color;
                 is-activated: mode == "edit-black-white";
                 clicked => { 
                     mode = "edit-black-white";
                     root.set-mode(mode);  
+                }
+                property<length> square-size: min(width, height) * 45%;
+                Rectangle {
+                    width: parent.square-size;
+                    height: parent.square-size;
+                    background: black;
+                    x: parent.width * 45% - parent.square-size;
+                    y: parent.height * 45% - parent.square-size / 2;
+                    border-color: #000000;
+                    border-width: current-theme.piece-border;
+                }
+                Rectangle {
+                    width: parent.square-size;
+                    height: parent.square-size;
+                    background: white;
+                    x: parent.width * 55%;
+                    y: parent.height * 45% - parent.square-size / 2;
+                    border-color: #000000;
+                    border-width: current-theme.piece-border;
                 }
             }
             Button { 
@@ -521,7 +518,15 @@ export MainWindow := Window {
                     root.set-mode(mode);
                 }
             }
-            Rectangle { }
+            Button {
+                button-text: "Save";
+                button-color: current-theme.game-text-color;
+                clicked => {
+                    root.save-game();
+                }
+            }
+
+            // Rectangle { }
             Text {
                 text: " Play: ";
                 font-size: parent.height * 40%;
@@ -537,13 +542,43 @@ export MainWindow := Window {
                 }
             }
             Button { 
-                button-text: "1 2 3\n4 5 6\n7 8 9";
-                button-font-size-percentage: 25%;
+                // button-text: "1 2 3\n4 5 6\n7 8 9";
+                // button-font-size-percentage: 25%;
                 button-color: current-theme.game-text-color;
                 is-activated: mode == "play-enter-small-numbers";
                 clicked => { 
                     mode = "play-enter-small-numbers";
                     root.set-mode(mode);
+                }
+                for j in [0,1,2,3,4,5,6,7,8] : Rectangle {
+                    Text {
+                        property<length> cell-size: min(parent.width, parent.height) * 85%; 
+                        text: j+1;
+                        font-size: cell-size / 3;
+                        font-family: current-theme.piece-text-font-family;
+                        x: parent.width / 2 - cell-size / 2 + (cell-size / 3) * mod(j, 3);
+                        y: parent.height / 2 - cell-size / 2 + (cell-size / 3) * floor(j / 3);
+                        width: cell-size / 3;
+                        height: cell-size / 3;
+                        vertical-alignment: center;
+                        horizontal-alignment: center;
+                    }
+                }
+            }
+
+            // Button {
+            //     button-text: "Generate";
+            //     button-color: current-theme.game-text-color;
+            //     clicked => {
+            //         root.generate-puzzle();
+            //     }
+            // }
+
+            Button {
+                button-text: "Solve";
+                button-color: current-theme.game-text-color;
+                clicked => {
+                    root.solve-puzzle();
                 }
             }
         }
