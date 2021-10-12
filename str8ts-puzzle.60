@@ -170,6 +170,8 @@ Button := Rectangle {
 }
 
 // import "./plaster-font/Plaster-Regular.ttf";
+// import "./Cantarell/Cantarell-Bold.ttf";
+// import "./Cantarell/Cantarell-Regular.ttf";
 
 export MainWindow := Window {
     title: "Str8ts Puzzle - SixtyFPS Demo";
@@ -189,31 +191,9 @@ export MainWindow := Window {
     property <[Cell]> cells: [];
     property <bool> was-just-solved;
 
-    property <[Theme]> themes: [
-        {
-            name: "SIMPLE",
-            window-background-color: #ffffff,
-            game-background-color: #ffffff,
-            game-use-background-image: false,
-            game-border: 2px,
-            game-radius: 2px,
-            game-text-color: #858585,
-            game-highlight-color: #1d6aaa,
-            piece-border: 1px,
-            piece-background-1: #0d579b,
-            piece-background-2: #0d579b,
-            piece-border-color-1: #0a457b,
-            piece-border-color-2: #0a457b,
-            piece-text-color-1: #ffffff,
-            piece-text-color-2: #ffffff,
-            piece-text-weight-fixed-value: 700,
-            piece-text-weight-nonfixed-value: 550,
-            piece-radius: 5px,
-            /// Ratio of the piece size
-            piece-spacing: 0%,
-            cells-outer-border: 1px,
-        }
-    ];
+    // default-font-family: "Cantarell";
+
+    property <[Theme]> themes: [];
 
     property<int> current-theme-index: 1;
 
@@ -237,6 +217,7 @@ export MainWindow := Window {
         piece-text-weight-fixed-value: 700,
         piece-text-weight-nonfixed-value: 550,
         piece-radius: 5px,
+        piece-text-font-family: default-font-family,
         /// Ratio of the piece size
         piece-spacing: 0%,
         cells-outer-border: 1px,
@@ -247,13 +228,6 @@ export MainWindow := Window {
         2px : (pieces-size * current-theme.piece-spacing);
 
     animate pieces-spacing { duration: 500s; easing: ease-out; }
-
-    Image {
-        height: 100%; width: 100%;
-        // https://commons.wikimedia.org/wiki/File:Berlin_potsdamer_platz.jpg Belappetit, CC BY-SA 3.0
-        source: @image-url("berlin.jpg");
-        image-fit: cover;
-    }
 
     Rectangle {
         background: current-theme.window-background-color;
@@ -270,33 +244,6 @@ export MainWindow := Window {
         x: (parent.width - width)/2;
         y: (parent.height - height)/2;
         animate background, border-color, border-width, border-radius { duration: 500ms; easing: ease-out; }
-
-        // Rectangle {
-        //     width: parent.width * 90%;
-        //     height: pieces-size;
-        //     x: (parent.width - width) / 2;
-        //     HorizontalLayout {
-        //         spacing: 0px;
-        //         for theme[idx] in themes: TouchArea {
-        //             t := Text {
-        //                 width: 100%; height: 100%;
-        //                 text: theme.name;
-        //                 color: idx == current-theme-index ? current-theme.game-highlight-color : current-theme.game-text-color;
-        //                 vertical-alignment: center;
-        //                 horizontal-alignment: center;
-        //             }
-        //             Rectangle {
-        //                 background: t.color;
-        //                 height: idx == current-theme-index ? 2px: 1px;
-        //                 y: parent.height - height;
-        //             }
-        //             clicked => {
-        //                 root.current-theme = theme;
-        //                 root.current-theme-index = idx;
-        //             }
-        //         }
-        //     }
-        // }
 
         Rectangle {
             x: (parent.width - width)/2;
@@ -333,26 +280,7 @@ export MainWindow := Window {
 
                     property<string> value: p.value > 0 ? p.value : "";
 
-                    if (current-theme.game-use-background-image) : Image {
-                        height: 100%; width: 100%;
-                        // https://commons.wikimedia.org/wiki/File:Berlin_potsdamer_platz.jpg Belappetit, CC BY-SA 3.0
-                        source: @image-url("berlin.jpg");
-                        source-clip-x: mod(i, 4) * 1024 / 4;
-                        source-clip-y: floor(i / 4) * 683 / 4;
-                        source-clip-width: 1024 / 4;
-                        source-clip-height: 683 / 4;
-
-                        if (root.tiles-left != 0) : Rectangle {
-                            width: 60%;
-                            height: 60%;
-                            x: (parent.width - width) / 2;
-                            y: (parent.height - height) / 2;
-                            border-radius: width;
-                            background: is-correct ? #0008 : #fff8;
-                        }
-                    }
-
-                    if (!current-theme.game-use-background-image) : Rectangle {
+                    Rectangle {
                         // background: i >= 8 ? current-theme.piece-background-2 : current-theme.piece-background-1;
                         background: #ff00ff;
                         border-color: #000000;
@@ -392,7 +320,7 @@ export MainWindow := Window {
                         ]
                     }
 
-                    if (!current-theme.game-use-background-image || tiles-left > 0) : Text {
+                    Text {
                         text: value;
                         color: !p.is-valid-in-row ? #df0000 : p.is-white ? #000000 : #ffffff;
                         font-size: pieces-size / 3;

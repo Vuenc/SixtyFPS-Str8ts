@@ -224,8 +224,6 @@ impl AppState {
         for (i, cell) in puzzle_cells.iter().enumerate() {
             self.cells.set_row_data(i, cell.clone());
         }
-        self.setup_rows_columns();
-        self.validate_board();
         // for (i, p) in self.positions.iter().enumerate() {
         //     self.set_pieces_pos(*p, i as _);
         // }
@@ -616,6 +614,8 @@ pub fn main() {
         state.borrow_mut().randomize();
     }
     main_window.set_cells(sixtyfps::ModelHandle::new(state.borrow().cells.clone()));
+    state.borrow_mut().setup_rows_columns();
+    state.borrow_mut().validate_board();
 
     let state_copy = state.clone();
     main_window.on_piece_clicked(move |p| {
