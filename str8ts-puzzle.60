@@ -1,22 +1,11 @@
-/* LICENSE BEGIN
-    This file is part of the SixtyFPS Project -- https://sixtyfps.io
-    Copyright (c) 2021 Olivier Goffart <olivier.goffart@sixtyfps.io>
-    Copyright (c) 2021 Simon Hausmann <simon.hausmann@sixtyfps.io>
-
-    SPDX-License-Identifier: GPL-3.0-only
-    This file is also available under commercial licensing terms.
-    Please contact info@sixtyfps.io for more information.
-LICENSE END */
-
-// import { Button } from "sixtyfps_widgets.60";
-
+// Represents a cell in the puzzle
 struct Cell := {
     // col/row position of the tile in the puzzle
     pos-x: int,
     pos-y: int,
     index: int,
     value: int,
-    small-values: [bool],
+    small-values: [bool], // For each of the 9 small values: present or not?
     is-white: bool,
     is-fixed: bool,
     is-editing: bool,
@@ -24,104 +13,37 @@ struct Cell := {
     is-valid-in-straight: bool
 }
 
+// Represents the style information
 struct Theme := {
     name: string,
     window-background-color: brush,
     game-background-color: brush,
-    game-use-background-image: bool,
     game-border: length,
+    game-border-color: color,
     game-radius: length,
     game-text-color: color,
     game-highlight-color: color,
-    piece-border: length,
-    piece-background-1: brush,
-    piece-background-2: brush,
-    piece-border-color-1: brush,
-    piece-border-color-2: brush,
-    piece-text-color-1: color,
-    piece-text-color-2: color,
-    piece-text-weight-fixed-value: int,
-    piece-text-weight-nonfixed-value: int,
-    piece-text-font-family: string,
-    piece-radius: length,
-    /// Ratio of the piece size
-    piece-spacing: float,
+    cell-border: length,
+    cell-border-color: color,
+    cell-background-color-white: color,
+    cell-background-color-black: color,
+    cell-background-color-solved: color,
+    cell-background-color-editing-white: color,
+    cell-background-color-editing-black: color,
+    cell-background-color-wrong: color,
+    cell-text-color-black: color,
+    cell-text-color-white: color,
+    cell-text-color-wrong: color,
+    cell-text-weight-fixed-value: int,
+    cell-text-weight-nonfixed-value: int,
+    cell-text-font-family: string,
+    cell-radius: length,
+    /// Ratio of the cell size
+    cell-spacing: float,
     cells-outer-border: length,
 }
 
-
-
-Checkbox := Rectangle {
-    property <bool> checked;
-    callback toggled(bool);
-    property<color> checked-color;
-    property<color> unchecked-color;
-
-    hover-rect := Rectangle {
-        background: #f5f5f5;
-        x: - parent.width / 4;
-        y: - parent.height / 4;
-        width: ta.has-hover ? root.width * 1.5 : 0px;
-        height: self.width;
-        border-radius: width;
-    }
-
-    checkbox-rect := Rectangle {
-        border-width: height * 10%;
-        border-color: unchecked-color;
-        border-radius: 2px;
-
-        clip := Rectangle {
-            width: 0px;
-            clip: true;
-
-            Text {
-                width: root.width;
-                height: root.height;
-
-                text: "✓";
-                font-size: height * 80%;
-                color: white;
-                animate color { duration: 200ms; }
-                vertical-alignment: center;
-                horizontal-alignment: center;
-            }
-        }
-        ta := TouchArea {
-            clicked => {
-                checked = !checked;
-                root.toggled(checked);
-            }
-        }
-
-    }
-
-    states [
-       /* pressed when ta.pressed : {
-            clip.width: root.width;
-            root.border-color: checked_color;
-            root.border-width: root.width;
-        }*/
-        checked when root.checked : {
-            clip.width: root.width;
-            checkbox-rect.border-color: checked-color;
-            checkbox-rect.border-width: root.width;
-        }
-    ]
-    transitions [
-        in checked : {
-            animate clip.width { duration: 200ms; easing: ease-in; }
-            animate checkbox-rect.border-width { duration: 100ms; easing: ease-out; }
-        }
-        out checked : {
-            animate clip.width { duration: 100ms; easing: ease; }
-            animate checkbox-rect.border-width { duration: 200ms; easing: ease-in-out; }
-            animate checkbox-rect.border-color { duration: 200ms; easing: cubic-bezier(1,1,1,0); }
-        }
-
-    ]
-}
-
+// Button in the style of the Checkbox from the slide puzzle example
 Button := Rectangle {
     callback clicked();
     property<color> button-color;
@@ -131,8 +53,10 @@ Button := Rectangle {
     property<bool> is-activated;
     property<color> hover-color: #f5f5f5;
     property<color> activated-color: #f0f2a4;
+    property<length> button-border-radius: 2px;
 
-    hover-rect := Rectangle {
+    // Visible if button is hovered or permanently activated
+    hover-activated-rect := Rectangle {
         background: ta.has-hover ? hover-color : activated-color;
         x: - (width - parent.width) / 2;
         y: - (height - parent.height) / 2;
@@ -142,16 +66,17 @@ Button := Rectangle {
         border-radius: 10% * height;
     }
 
-    checkbox-rect := Rectangle {
+    // Holds button border and text
+    button-rect := Rectangle {
         border-width: height * 5%;
         border-color: button-color;
-        border-radius: 2px;
+        border-radius: button-border-radius;
 
         Text {
             width: parent.width;
             height:  parent.height * 80%;
             x: parent.width / 2 - width / 2;
-            y: parent.height * 10%; //parent.height / 2 - height / 2;
+            y: parent.height * 10%;
             font-weight: button-font-weight;
 
             text: button-text;
@@ -169,175 +94,189 @@ Button := Rectangle {
     }
 }
 
-// import "./plaster-font/Plaster-Regular.ttf";
-// import "./Cantarell/Cantarell-Bold.ttf";
-// import "./Cantarell/Cantarell-Regular.ttf";
-
+// Main window component
 export MainWindow := Window {
     title: "Str8ts Puzzle - SixtyFPS Demo";
 
-    callback piece-clicked(int);
+    callback cell-clicked(int);
     callback cell-key-pressed(int, KeyEvent);
     callback reset();
-    callback enable-auto-mode(bool);
     callback set-mode(string);
     callback solve-puzzle();
     callback save-game();
     callback generate-puzzle();
-    property <bool> auto-play;
-    property <int> moves;
-    property <int> tiles-left;
     property <string> mode: "none"; // "none", "edit-black-white", "edit-fixed-numbers", "play-enter-numbers", "play-enter-small-numbers"
     property <[Cell]> cells: [];
     property <bool> was-just-solved;
 
-    // default-font-family: "Cantarell";
-
-    property <[Theme]> themes: [];
-
-    property<int> current-theme-index: 1;
-
-    // FIXME: themes[current-theme-index]
+    // Default (and currently only) theme
     property <Theme> current-theme: {
         name: "SIMPLE",
         window-background-color: #ffffff,
         game-background-color: #ffffff,
-        game-use-background-image: false,
         game-border: 2px,
+        game-border-color: #000000,
         game-radius: 2px,
         game-text-color: #858585,
         game-highlight-color: #1d6aaa,
-        piece-border: 1px,
-        piece-background-1: #0d579b,
-        piece-background-2: #0d579b,
-        piece-border-color-1: #0a457b,
-        piece-border-color-2: #0a457b,
-        piece-text-color-1: #ffffff,
-        piece-text-color-2: #ffffff,
-        piece-text-weight-fixed-value: 700,
-        piece-text-weight-nonfixed-value: 550,
-        piece-radius: 5px,
-        piece-text-font-family: default-font-family,
-        /// Ratio of the piece size
-        piece-spacing: 0%,
+        cell-border: 1px,
+        cell-border-color: #000000,
+        cell-background-color-white: #ffffff,
+        cell-background-color-black: #000000,
+        cell-background-color-solved: #99fb99,
+        cell-background-color-editing-white: #f0f2a4,
+        cell-background-color-editing-black: #535339,
+        cell-background-color-wrong: #ff5c5c,
+        cell-text-color-black: #ffffff,
+        cell-text-color-white: #000000,
+        cell-text-color-wrong:  #df0000,
+        cell-text-weight-fixed-value: 700,
+        cell-text-weight-nonfixed-value: 550,
+        cell-radius: 5px,
+        cell-text-font-family: default-font-family,
+        /// Ratio of the cell size
+        cell-spacing: 0%,
         cells-outer-border: 1px,
     };
 
-    property<length> pieces-size: min(width, height) / 13;
-    property<length> pieces-spacing: current-theme.game-use-background-image && tiles-left == 0 ?
-        2px : (pieces-size * current-theme.piece-spacing);
-
-    animate pieces-spacing { duration: 500s; easing: ease-out; }
+    property<length> cells-size: min(width, height) / 13;
+    property<length> cells-spacing: cells-size * current-theme.cell-spacing;
 
     Rectangle {
         background: current-theme.window-background-color;
         animate background { duration: 500ms; easing: ease-out; }
     }
 
+    // Border around game board and other UI elements
     Rectangle {
         background: current-theme.game-background-color;
         border-color: current-theme.game-text-color;
         border-width: current-theme.game-border;
         border-radius: current-theme.game-radius;
-        width: pieces-size * 10.35;
-        height: pieces-size * 12;
+        width: cells-size * 10.35;
+        height: cells-size * 12;
         x: (parent.width - width)/2;
         y: (parent.height - height)/2;
         animate background, border-color, border-width, border-radius { duration: 500ms; easing: ease-out; }
 
+        // Border around game board
         Rectangle {
             x: (parent.width - width)/2;
             y: (parent.height - height)/2;
-            width: 9*pieces-size + 8*pieces-spacing + 2*current-theme.cells-outer-border;
+            width: 9*cells-size + 8*cells-spacing + 2*current-theme.cells-outer-border;
             height: width;
             border-width: current-theme.cells-outer-border;
-            border-color: #000000;
+            border-color: current-theme.game-border-color;
 
+            // Game board
             Rectangle {
                 x: current-theme.cells-outer-border;
                 y: current-theme.cells-outer-border;
                 width: parent.width - 2*current-theme.cells-outer-border;
                 height: parent.height - 2*current-theme.cells-outer-border;
-                background: #000000;
+                // To prevent the background from showing through between tiles:
+                background: current-theme.cell-border-color;
 
+                // Cells of the gameboard
                 for p[i] in cells : Rectangle {
-                    x: py * (pieces-size + pieces-spacing);
-                    y: px * (pieces-size + pieces-spacing);
-                    width: pieces-size;
-                    height: pieces-size;
-                    property <bool> is-correct: i == p.pos-x * 4 + p.pos-y;
-
-                    drop-shadow-offset-x: 1px;
-                    drop-shadow-offset-y: 1px;
-                    drop-shadow-blur: 3px;
-                    drop-shadow-color: #00000040;
-                    border-radius: 0; //current-theme.piece-radius;
-                    clip: true;
-
                     property<float> px: p.pos-x;
                     property<float> py: p.pos-y;
-                    animate px , py { duration: 170ms; easing: cubic-bezier(0.17,0.76,0.4,1.75); }
+                    x: py * (cells-size + cells-spacing);
+                    y: px * (cells-size + cells-spacing);
+                    width: cells-size;
+                    height: cells-size;
 
+                    // Make sure circle animation doesn't go out of bounds
+                    clip: true;
+
+                    // Convention: no value => value = -1 (.60 language has no Option<..> type)
                     property<string> value: p.value > 0 ? p.value : "";
 
                     Rectangle {
-                        // background: i >= 8 ? current-theme.piece-background-2 : current-theme.piece-background-1;
-                        background: #ff00ff;
-                        border-color: #000000;
-                        border-width: current-theme.piece-border;
-                        border-radius: 0;
-                        animate border-width, border-radius { duration: 500ms; easing: ease-out; }
+                        border-color: current-theme.cell-border-color;
+                        border-width: current-theme.cell-border;
 
+                        // Different states of the cell => different backgrounds:
                         states [ 
                             was-just-solved when root.was-just-solved && p.is-white : {
-                                background: #99fb99;
+                                // ...when puzzle was just solved
+                                background: current-theme.cell-background-color-solved;
                             }
-                            is-editing when p.is-editing : {
-                                background: p.is_white ? #f0f2a4 : #535339;
+                            is-editing-white when p.is-editing && p.is-white : {
+                                // ...when editing a white cell
+                                background: current-theme.cell-background-color-editing-white;
+                            }
+                            is-editing-black when p.is-editing && !p.is-white : {
+                                // ...when editing a black cell
+                                background: current-theme.cell-background-color-editing-black;
                             }
                             is-invalid-in-straight when !p.is-valid-in-straight : {
-                                background: #ff5c5c;
+                                // ...when straight is invalid
+                                background: current-theme.cell-background-color-wrong;
                             }
                             is-white when p.is-white : {
-                                background: #ffffff;
+                                // ...white cell default
+                                background: current-theme.cell-background-color-white;
                             }
                             is-black when !p.is-white : {
-                                background: #000000;
+                                // ...black cell default
+                                background: current-theme.cell-background-color-black;
                             }
                         ]
 
                         transitions [ 
                             in was-just-solved: {
+                                // Quickly flash when game was just solved...
                                 animate background { duration: 400ms; easing: ease-in; }
                             }
                             out was-just-solved: {
+                                // ...then go back to normal (is reset by timer)
                                 animate background { duration: 200ms; easing: ease-out; }
                             }
                             in is-invalid-in-straight : { animate background { duration: 40ms; } }
-                            in is-editing : { animate background { duration: 40ms; } }
+                            in is-editing-white : { animate background { duration: 40ms; } }
+                            in is-editing-black : { animate background { duration: 40ms; } }
                             in is-white : { animate background { duration: 100ms; easing: ease-in-out;  } }
                             in is-black : { animate background { duration: 100ms; easing: ease-in-out; } }
                         ]
                     }
 
+                    // Cell value displayed as text
                     Text {
                         text: value;
-                        color: !p.is-valid-in-row ? #df0000 : p.is-white ? #000000 : #ffffff;
-                        font-size: pieces-size / 3;
-                        font-weight: p.is-fixed ? current-theme.piece-text-weight-fixed-value : current-theme.piece-text-weight-nonfixed-value;
-                        font-family: current-theme.piece-text-font-family;
+                        font-size: cells-size / 3;
+                        font-weight: p.is-fixed ? current-theme.cell-text-weight-fixed-value 
+                            : current-theme.cell-text-weight-nonfixed-value;
+                        font-family: current-theme.cell-text-font-family;
                         vertical-alignment: center;
                         horizontal-alignment: center;
                         width: 100%;
                         height: 100%;
                         animate color { duration: 200ms; }
+
+                        // Different states of the cell => different font colors:
+                        states [
+                            is-invalid-in-row when !p.is-valid-in-row : {
+                                // ...when the value is duplicate in row/column
+                                color: current-theme.cell-text-color-wrong;
+                            }
+                            is-white when p.is-white : {
+                                // ...default white cell
+                                color: current-theme.cell-text-color-white;
+                            }
+                            is-black when !p.is-white : {
+                                // ...default black cell
+                                color: current-theme.cell-text-color-black;
+                            }
+                        ]
                     }
 
+                    // Small numbers in the cell if the cell has no value
                     for small-val[j] in p.small-values : Rectangle {
-                        if value <= 0 && small-val: Text {
+                        if value <= 0 && p.is-white && small-val: Text {
                             text: j+1;
-                            font-size: pieces-size / 6;
-                            font-family: current-theme.piece-text-font-family;
+                            font-size: cells-size / 6;
+                            font-family: current-theme.cell-text-font-family;
                             x: (parent.width / 3) * mod(j, 3);
                             y: (parent.height / 3) * floor(j / 3);
                             width: parent.width / 3;
@@ -347,15 +286,18 @@ export MainWindow := Window {
                         }
                     }
 
+                    // Capture clicks on the cell
                     touch := TouchArea {
-                        clicked => { root.piece-clicked(i); }
+                        clicked => { root.cell-clicked(i); }
                     }
 
+                    // Capture key presses on the cell
                     FocusScope {
                         has-focus: p.is-editing;
                         key-pressed(e) => { root.cell-key-pressed(i, e); accept }
                     }
 
+                    // Display circular, growing shadow when cell is pressed
                     shadow := Rectangle {
                         circle := Rectangle {
                             height: width;
@@ -366,6 +308,7 @@ export MainWindow := Window {
                         }
                     }
 
+                    // Animation of the circular shadow
                     states [
                         pressed when touch.pressed : {
                             shadow.color: #0002;
@@ -389,12 +332,15 @@ export MainWindow := Window {
             }
         }
 
+        // Row of buttons to switch between game modes, etc.
         HorizontalLayout {
-            height: pieces-size;
-            y: parent.height - pieces-size;
+            height: cells-size;
+            y: parent.height - cells-size;
             width: parent.width;
             padding: height * 25%;
             spacing: 10px;
+
+            // Restart button (function right now: clears everything)
             Text {
                 text: " ↻ ";
                 font-size: parent.height * 40%;
@@ -404,11 +350,12 @@ export MainWindow := Window {
                     clicked => { root.reset(); }
                 }
             }
+            
             Text { 
-                text: " Edit: ";
+                text: "Edit:";
                 font-size: parent.height * 40%;
-                // font-size: parent.height;
             }
+            // Activates changing between black and white cells
             Button { 
                 button-color: current-theme.game-text-color;
                 is-activated: mode == "edit-black-white";
@@ -416,26 +363,28 @@ export MainWindow := Window {
                     mode = "edit-black-white";
                     root.set-mode(mode);  
                 }
+                // Black and white square as button icon
                 property<length> square-size: min(width, height) * 45%;
                 Rectangle {
-                    width: parent.square-size;
-                    height: parent.square-size;
-                    background: black;
                     x: parent.width * 45% - parent.square-size;
                     y: parent.height * 45% - parent.square-size / 2;
-                    border-color: #000000;
-                    border-width: current-theme.piece-border;
-                }
-                Rectangle {
+                    background: current-theme.cell-background-color-black;
                     width: parent.square-size;
                     height: parent.square-size;
-                    background: white;
+                    border-color: current-theme.cell-border-color;
+                    border-width: current-theme.cell-border;
+                }
+                Rectangle {
                     x: parent.width * 55%;
                     y: parent.height * 45% - parent.square-size / 2;
-                    border-color: #000000;
-                    border-width: current-theme.piece-border;
+                    background: current-theme.cell-background-color-white;
+                    width: parent.square-size;
+                    height: parent.square-size;
+                    border-color: current-theme.cell-border-color;
+                    border-width: current-theme.cell-border;
                 }
             }
+            // Activates editing fixed numbers
             Button { 
                 button-text: "1";
                 button-font-weight: 700;
@@ -446,6 +395,7 @@ export MainWindow := Window {
                     root.set-mode(mode);
                 }
             }
+            // Saves the game to game_state.json
             Button {
                 button-text: "Save";
                 button-color: current-theme.game-text-color;
@@ -454,12 +404,11 @@ export MainWindow := Window {
                 }
             }
 
-            // Rectangle { }
             Text {
-                text: " Play: ";
+                text: "Play:";
                 font-size: parent.height * 40%;
-                // font-size: parent.height;
             }
+            // Activates entering (non-fixed) numbers
             Button { 
                 button-text: "1";
                 button-color: current-theme.game-text-color;
@@ -469,21 +418,21 @@ export MainWindow := Window {
                     root.set-mode(mode);
                 }
             }
-            Button { 
-                // button-text: "1 2 3\n4 5 6\n7 8 9";
-                // button-font-size-percentage: 25%;
+            // Activates entering small numbers
+            Button {
                 button-color: current-theme.game-text-color;
                 is-activated: mode == "play-enter-small-numbers";
                 clicked => { 
                     mode = "play-enter-small-numbers";
                     root.set-mode(mode);
                 }
+                // Small number 1-9 as button icon
                 for j in [0,1,2,3,4,5,6,7,8] : Rectangle {
                     Text {
                         property<length> cell-size: min(parent.width, parent.height) * 85%; 
                         text: j+1;
                         font-size: cell-size / 3;
-                        font-family: current-theme.piece-text-font-family;
+                        font-family: current-theme.cell-text-font-family;
                         x: parent.width / 2 - cell-size / 2 + (cell-size / 3) * mod(j, 3);
                         y: parent.height / 2 - cell-size / 2 + (cell-size / 3) * floor(j / 3);
                         width: cell-size / 3;
@@ -494,6 +443,7 @@ export MainWindow := Window {
                 }
             }
 
+            // Generates a puzzle: not functional yet
             // Button {
             //     button-text: "Generate";
             //     button-color: current-theme.game-text-color;
@@ -502,6 +452,7 @@ export MainWindow := Window {
             //     }
             // }
 
+            // Solves the game
             Button {
                 button-text: "Solve";
                 button-color: current-theme.game-text-color;
