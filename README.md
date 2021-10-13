@@ -5,16 +5,16 @@ The demo is based on the official Slide Puzzle demo: [https://github.com/sixtyfp
 
 ### Functionality
 - entering puzzles
-![Entering a puzzle](./screenshots/editing.png)
+<img src="./screenshots/editing.png" width=40% height=40%>
 
 - playing the puzzle: entering numbers, entering small numbers
-![Playing a puzzle](./screenshots/playing.png)
+<img src="./screenshots/playing.png" width=40% height=40%>
 
 - highlights numbers that violate the game rules
-![Highlighting errors](./screenshots/errors.png)
+<img src="./screenshots/errors.png" width=40% height=40%>
 
 - solving the puzzle automatically
-![Solving a puzzle](./screenshots/solving.png)
+<img src="./screenshots/solving.png" width=40% height=40%>
 
 - animations when cells change color and when completing the puzzle
 
